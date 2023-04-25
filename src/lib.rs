@@ -4,8 +4,16 @@ use fixedbitset::FixedBitSet;
 use js_sys::Reflect::has;
 use wasm_bindgen::prelude::*;
 
-extern crate js_sys;
 extern crate fixedbitset;
+extern crate js_sys;
+extern crate web_sys;
+
+/// Macro to provide `println!(..)` style syntax for `console.log` logging
+macro_rules! log {
+    ( $( $t:tt)* ) => {
+        web_sys::console::log_1(&format!( $($t)* ).into());
+    }
+}
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -87,10 +95,10 @@ impl Universe {
                 let live_neighbors = self.live_neighbor_count(row, col);
 
                 next.set(idx, match (cell, live_neighbors) {
-                    (true, x) if x < 2 => false,
+                    (true, x) if x < 2 => {log!("cell[{}, {}] became false with {} neighbors", row, col, live_neighbors); false},
                     (true, 2) | (true, 3) => true,
-                    (true, x) if x > 3 => false,
-                    (false, 3) => true,
+                    (true, x) if x > 3 => {log!("cell[{}, {}] became false with {} neighbors", row, col, live_neighbors); false},
+                    (false, 3) => {log!("cell[{}, {}] became true with {} neighbors", row, col, live_neighbors); true},
                     (otherwise, _) => otherwise
                 });
             }
@@ -100,6 +108,7 @@ impl Universe {
 
     /// Initializes a new Universe using a 64x64 grid
     pub fn new() -> Universe {
+        utils::set_panic_hook();
         let width = 64;
         let height = 64;
 
