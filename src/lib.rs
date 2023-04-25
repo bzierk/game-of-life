@@ -1,8 +1,10 @@
 mod utils;
 
-use std::fmt;
-use std::fmt::Formatter;
+use fixedbitset::FixedBitSet;
 use wasm_bindgen::prelude::*;
+
+extern crate js_sys;
+extern crate fixedbitset;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -15,14 +17,14 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cell {
     Dead = 0,
-    Alive = 1
+    Alive = 1,
 }
 
 #[wasm_bindgen]
 pub struct Universe {
     width: u32,
     height: u32,
-    cells: Vec<Cell>
+    cells: FixedBitSet,
 }
 
 impl Universe {
@@ -71,66 +73,46 @@ impl Universe {
                 let cell = self.cells[idx];
                 let live_neighbors = self.live_neighbor_count(row, col);
 
-                let next_cell = match (cell, live_neighbors) {
-                    // Rule 1: Any live cell with fewer than 2 live neighbors dies, as
-                    // if caused by underpopulation
-                    (Cell::Alive, x) if x < 2 => Cell::Dead,
-
-                    // Rule 2: Any live cell with 2 or 3 live neighbors lives on to the next
-                    // generation
-                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
-
-                    // Rule 3: Any live cell with more than three live neighbors dies, as if
-                    // by overpopulation
-                    (Cell::Alive, x) if x > 3 => Cell::Dead,
-
-                    // Rule 4: Any dead cell with exactly three live neighbors becomes a live cell,
-                    // as if by reproduction
-                    (Cell::Dead, x) if x == 3 => Cell::Alive,
-
-                    // All other cells remain in the same state
-                    (otherwise, _) => otherwise,
-                };
-                next[idx] = next_cell;
+                next.set(idx, match (cell, live_neighbors) {
+                    (true, x) if x < 2 => false,
+                    (true, 2) | (true, 3) => true,
+                    (true, x) if x > 3 => false,
+                    (false, x) if x == 3 => true,
+                    (otherwise, _) => otherwise
+                });
             }
         }
         self.cells = next;
     }
 
+    /// Initializes a new Universe using a 64x64 grid
     pub fn new() -> Universe {
         let width = 64;
         let height = 64;
 
-        let cells = (0..width * height)
-            .map(|i| {
-                if i % 2 == 0 || i % 7 == 0 {
-                    Cell::Alive
-                } else {
-                    Cell::Dead
-                }
-            }).collect();
+        let size = (width * height) as usize;
+        let mut cells = FixedBitSet::with_capacity(size);
+
+        for i in 0..size {
+            cells.set(i, js_sys::Math::random() < 0.5);
+        }
 
         Universe {
             width,
             height,
-            cells
+            cells,
         }
     }
 
-    pub fn render(&self) -> String {
-        self.to_string()
+    pub fn width(&self) -> u32 {
+        self.width
     }
-}
 
-impl fmt::Display for Universe {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        for line in self.cells.as_slice().chunks(self.width as usize) {
-            for &cell in line {
-                let symbol = if cell == Cell::Dead { '◻' } else { '◼' };
-                write!(f, "{}", symbol)?;
-            }
-            writeln!(f)?;
-        }
-        Ok(())
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn cells(&self) -> *const u32 {
+        self.cells.as_slice().as_ptr()
     }
 }
