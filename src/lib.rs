@@ -1,6 +1,7 @@
 mod utils;
 
 use fixedbitset::FixedBitSet;
+use js_sys::Reflect::has;
 use wasm_bindgen::prelude::*;
 
 extern crate js_sys;
@@ -27,6 +28,23 @@ pub struct Universe {
     cells: FixedBitSet,
 }
 
+impl Universe {
+    /// Get the list of cells in a Universe
+    pub fn get_cells(&self) -> &FixedBitSet {
+        &self.cells
+    }
+
+    /// Set cells to be alive in a Universe by passing row and column of each cell as an array
+    pub fn set_cells(&mut self, cells: &[(u32, u32)]) {
+        for (row, col) in cells.iter().cloned() {
+            let idx = self.get_index(row, col);
+            self.cells.set(idx, true);
+        }
+    }
+}
+
+// Separate impl for things we want exposed to JS
+#[wasm_bindgen]
 impl Universe {
     /// Takes a row and column in the Universe grid and returns the cell's index in
     /// a linear array
@@ -58,11 +76,6 @@ impl Universe {
 
         count
     }
-}
-
-// Separate impl for things we want exposed to JS
-#[wasm_bindgen]
-impl Universe {
     /// Iterates over the Universe determining the state of each cell in the next tick
     pub fn tick(&mut self) {
         let mut next = self.cells.clone();
@@ -77,7 +90,7 @@ impl Universe {
                     (true, x) if x < 2 => false,
                     (true, 2) | (true, 3) => true,
                     (true, x) if x > 3 => false,
-                    (false, x) if x == 3 => true,
+                    (false, 3) => true,
                     (otherwise, _) => otherwise
                 });
             }
@@ -114,5 +127,27 @@ impl Universe {
 
     pub fn cells(&self) -> *const u32 {
         self.cells.as_slice().as_ptr()
+    }
+
+    /// Set width of the universe and reset all cells to `Dead`
+    pub fn set_width(&mut self, width: u32) {
+        self.width = width;
+        let size = (width * self.height) as usize;
+        let mut cells = FixedBitSet::with_capacity(size);
+        for i in 0..size {
+            cells.set(i, false);
+        }
+        self.cells = cells;
+    }
+
+    /// Set height of the universe and reset all cells to `Dead`
+    pub fn set_height(&mut self, height: u32) {
+        self.height = height;
+        let size = (height * self.width) as usize;
+        let mut cells = FixedBitSet::with_capacity(size);
+        for i in 0..size {
+            cells.set(i, false);
+        }
+        self.cells = cells;
     }
 }
