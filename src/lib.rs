@@ -95,10 +95,19 @@ impl Universe {
                 let live_neighbors = self.live_neighbor_count(row, col);
 
                 next.set(idx, match (cell, live_neighbors) {
-                    (true, x) if x < 2 => {log!("cell[{}, {}] became false with {} neighbors", row, col, live_neighbors); false},
+                    (true, x) if x < 2 => {
+                        log!("cell[{}, {}] became false with {} neighbors", row, col, live_neighbors);
+                        false
+                    }
                     (true, 2) | (true, 3) => true,
-                    (true, x) if x > 3 => {log!("cell[{}, {}] became false with {} neighbors", row, col, live_neighbors); false},
-                    (false, 3) => {log!("cell[{}, {}] became true with {} neighbors", row, col, live_neighbors); true},
+                    (true, x) if x > 3 => {
+                        log!("cell[{}, {}] became false with {} neighbors", row, col, live_neighbors);
+                        false
+                    }
+                    (false, 3) => {
+                        log!("cell[{}, {}] became true with {} neighbors", row, col, live_neighbors);
+                        true
+                    }
                     (otherwise, _) => otherwise
                 });
             }
@@ -158,5 +167,10 @@ impl Universe {
             cells.set(i, false);
         }
         self.cells = cells;
+    }
+
+    pub fn toggle_cell(&mut self, row: u32, col: u32) {
+        let idx = self.get_index(row, col);
+        self.cells.toggle(idx);
     }
 }
