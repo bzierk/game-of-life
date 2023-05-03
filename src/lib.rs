@@ -135,6 +135,25 @@ impl Universe {
         }
     }
 
+    pub fn empty() -> Universe {
+        utils::set_panic_hook();
+        let width = 64;
+        let height = 64;
+
+        let size = (width * height) as usize;
+        let mut cells = FixedBitSet::with_capacity(size);
+
+        for i in 0..size {
+            cells.set(i, false);
+        }
+
+        Universe {
+            width,
+            height,
+            cells,
+        }
+    }
+
     pub fn width(&self) -> u32 {
         self.width
     }
@@ -172,5 +191,26 @@ impl Universe {
     pub fn toggle_cell(&mut self, row: u32, col: u32) {
         let idx = self.get_index(row, col);
         self.cells.toggle(idx);
+    }
+
+    pub fn spawn_glider(&mut self, row: u32, col: u32) {
+        let cells = [(row - 1, col + 1), (row, col - 1), (row, col + 1), (row + 1, col), (row + 1, col + 1)];
+        self.set_cells(&cells);
+    }
+
+    pub fn spawn_pulsar(&mut self, row: u32, col: u32) {
+        let cells = [
+            (row - 6, col - 4), (row - 6, col - 3), (row - 6, col - 2), (row - 6, col + 2), (row - 6, col + 3), (row - 6, col + 4),
+            (row - 4, col - 6), (row - 4, col - 1), (row - 4, col + 1), (row - 4, col + 6),
+            (row - 3, col - 6), (row - 3, col - 1), (row - 3, col + 1), (row - 3, col + 6),
+            (row - 2, col - 6), (row - 2, col - 1), (row - 2, col + 1), (row - 2, col + 6),
+            (row - 1, col - 4), (row - 1, col - 3), (row - 1, col - 2), (row - 1, col + 2), (row - 1, col + 3), (row - 1, col + 4),
+            (row + 1, col - 4), (row + 1, col - 3), (row + 1, col - 2), (row + 1, col + 2), (row + 1, col + 3), (row + 1, col + 4),
+            (row + 2, col - 6), (row + 2, col - 1), (row + 2, col + 1), (row + 2, col + 6),
+            (row + 3, col - 6), (row + 3, col - 1), (row + 3, col + 1), (row + 3, col + 6),
+            (row + 4, col - 6), (row + 4, col - 1), (row + 4, col + 1), (row + 4, col + 6),
+            (row + 6, col - 4), (row + 6, col - 3), (row + 6, col - 2), (row + 6, col + 2), (row + 6, col + 3), (row + 6, col + 4),
+        ];
+        self.set_cells(&cells);
     }
 }
